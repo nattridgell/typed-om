@@ -17,6 +17,12 @@
   function TransformComponent() {
   }
 
+  TransformComponent._componentFromValueArray = function(type, value) {
+    var component = Object.create(type.prototype);
+    type.apply(component, value);
+    return component;
+  };
+
   TransformComponent.prototype.asMatrix = function() {
     throw new TypeError('Should not be reached.');
   };

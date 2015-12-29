@@ -16,7 +16,34 @@
 (function(internal, scope, testing) {
 
   function isCalc(string) {
-    return /^calc/.test(string); 
+    return /^calc/.test(string);
+  }
+
+  // Parses a '( , , )'
+  function parseArgument(numberOfArguments, expectedType, string) {
+    string = string.trim().toLowerCase();
+
+    // Must start and end in parenthesis.
+    if (!/^\(/.test(string) || !/\)$/.test(string)) {
+      return;
+    }
+    string = string.substring(1, string.length - 1);
+
+    var resultStrings = string.split(',');
+    // Must have the expected number of arguments.
+    if (resultStrings.length != numberOfArguments) {
+      return;
+    }
+
+    var result = [];
+    for (var i = 0; i < resultStrings.length; i++) {
+      var value = expectedType.parse(resultStrings[i]);
+      if (value == null) {
+        return;
+      }
+      result[i] = value;
+    }
+    return result;
   }
 
   // Effectively returns a calc dictionary.
@@ -76,6 +103,7 @@
 
   internal.parsing = {};
   internal.parsing.isCalc = isCalc;
+  internal.parsing.parseArgument = parseArgument;
   internal.parsing.parseDimension = parseDimension;
   if (TYPED_OM_TESTING) {
     testing.parsing = internal.parsing;

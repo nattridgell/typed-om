@@ -37,6 +37,78 @@
   }
   internal.inherit(TransformValue, internal.StyleValue);
 
+  TransformValue._componentTypesDictionary = {
+    matrix3d: {type: Matrix, numberOfArgs: 16, typeOfArgs: NumberValue},
+    matrix: {type: Matrix, numberOfArgs: 6, typeOfArgs: NumberValue},
+    perspective: {type: Perspective, numberOfArgs: 1, typeOfArgs: LengthValue},
+    rotate3d: {type: Rotation, numberOfArgs: 4, typeOfArgs: NumberValue},
+    rotate: {type: Rotation, numberOfArgs: 1, typeOfArgs: NumberValue},
+    scale3d: {type: Scale, numberOfArgs: 3, typeOfArgs: NumberValue},
+    scale: {type: Scale, numberOfArgs: 2, typeOfArgs: NumberValue},
+    skew: {type: Skew, numberOfArgs: 2, typeOfArgs: NumberValue},
+    translate3d: {type: Translation, numberOfArgs: 3, typeOfArgs: LengthValue},
+    translate: {type: Translation, numberOfArgs: 2, typeOfArgs: LengthValue},
+  }
+
+  TransformValue.parse = function(cssString) {
+    if (typeof cssString != 'string') {
+      throw new TypeError('Must parse a length out of a string.');
+    }
+
+    cssString = cssString.trim().toLowerCase();
+
+    var componentTypes =  'matrix3d|matrix|perspective|rotate3d|rotate|' +
+        'scale3d|scale|skew|translate3d|translate';
+
+    var unitAndInput = cssString.split(
+        new RegExp('(' + componentTypes + ')', 'g'));
+    unitAndInput.shift();
+
+    if (!unitAndInput || unitAndInput.length % 2) {
+      return null;
+    }
+
+    var components = [];
+    for (var i = 0; i < unitAndInput.length / 2; i++) {
+      var type = unitAndInput[2 * i];
+      var valueString = unitAndInput[2 * i + 1].trim();
+      if (!(new RegExp(componentTypes, 'g')).test(type)) {
+        return null;
+      }
+
+      switch (type) {
+        case 'rotate3d':
+        case 'rotate':
+          if (!/[0-9]deg\s*\)$/g.test(valueString)) {
+            return null;
+          }
+          valueString = valueString.replace(/deg\s*\)$/g, ')');
+
+        default:
+          var componentDefinition =
+              TransformValue._componentTypesDictionary[type];
+          var value = internal.parsing.parseArgument(
+              componentDefinition.numberOfArgs, componentDefinition.typeOfArgs,
+              valueString);
+
+          if (!value) {
+            return null;
+          }
+
+          if (componentDefinition.typeOfArgs == NumberValue) {
+            value = value.map(function(number) {return number.value});
+          }
+          if (componentDefinition.type == Rotation) {
+            var angle = value.pop();
+            value.unshift(angle);
+          }
+          components[i] = TransformComponent._componentFromValueArray(
+              componentDefinition.type, value);
+      }
+    }
+
+    return new TransformValue(components);
+  };
 
   TransformValue.prototype.asMatrix = function() {
     return this._matrix;
