@@ -23,6 +23,18 @@
   }
   internal.inherit(NumberValue, internal.StyleValue);
 
+  NumberValue.parse = function(cssString) {
+    if (typeof cssString != 'string') {
+      return null;
+    }
+    var number = Number.parseFloat(cssString);
+    if (isNaN(number)) {
+      return null;
+    }
+
+    return new NumberValue(number);
+  };
+
   scope.NumberValue = NumberValue;
 
 })(typedOM.internal, window);
