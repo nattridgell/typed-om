@@ -103,7 +103,7 @@ suite('TransformValue', function() {
 
   // Asserts the expected components match the actual transform.
   // This helper method is used in TransformValue.parse tests.
-  function assertCorrectTransformComponents(actualTransform, expectedComponents,
+  function assertTransformComponents(actualTransform, expectedComponents,
       errorMsg) {
     assert.isNotNull(actualTransform, errorMsg);
     assert.instanceOf(actualTransform, TransformValue, errorMsg);
@@ -124,37 +124,39 @@ suite('TransformValue', function() {
 
   test.skip('TransformValue.parse returns expected transformComponents for ' +
       'single component strings', function() {
-    var simpleLength = new SimpleLength(0, 'px');
+    var simpleLength = new SimpleLength(1, 'px');
+    var zeroSimpleLength = new SimpleLength(0, 'px');
     var values = [
       // Simple components
       {str: 'matrix3d(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)',
           out: new Matrix(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)},
       {str: 'matrix(0, 1, 2, 3, 4, 5)', out: new Matrix(0, 1, 2, 3, 4, 5)},
-      {str: 'perspective(0px)', out: new Perspective(simpleLength)},
+      {str: 'perspective(1px)', out: new Perspective(simpleLength)},
       {str: 'rotate3d(1, 2, 3, 0deg)', out: new Rotation(0, 1, 2, 3)},
       {str: 'rotate(0deg)', out: new Rotation(0)},
       {str: 'scale3d(0, 1, 2)', out: new Scale(0, 1, 2)},
       {str: 'scale(0, 1)', out: new Scale(0, 1)},
       {str: 'skew(0, 0)', out: new Skew(0, 0)},
-      {str: 'translate3d(0px, 0px, 0px)',
+      {str: 'translate3d(1px, 1px, 1px)',
           out: new Translation(simpleLength, simpleLength, simpleLength)},
-      {str: 'translate(0px, 0px)',
+      {str: 'translate(1px, 1px)',
           out: new Translation(simpleLength, simpleLength)},
 
       // No spacing
       {str: 'matrix3d(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)',
           out: new Matrix(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)},
-      {str: 'translate3d(0px,0px,0px)',
+      {str: 'translate3d(1px,1px,1px)',
           out: new Translation(simpleLength, simpleLength, simpleLength)},
 
       // Extra spacing
       {str: ' matrix(0, 1, 2, 3, 4, 5) \n ', out: new Matrix(0, 1, 2, 3, 4, 5)},
-      {str: 'translate( \t 0px, \n 0px \n)',
+      {str: 'translate( \t 1px, \n 1px \n)',
           out: new Translation(simpleLength, simpleLength)},
 
       // Special case of length value.
       // Check that it is not filtered out in TransformValue parsing.
-      {str: 'perspective(0)', out: new Perspective(simpleLength)}
+      {str: 'translate(0, 0)',
+          out: new Translation(zeroSimpleLength, zeroSimpleLength)},
     ];
 
     for (var i = 0; i < values.length; i++) {
@@ -167,7 +169,7 @@ suite('TransformValue', function() {
 
   test.skip('TransformValue.parse returns expected transformComponents for ' +
       'compound component strings', function() {
-    var simpleLength = new SimpleLength(0, 'px');
+    var simpleLength = new SimpleLength(1, 'px');
     var components = {
       matrix3d: new Matrix(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
       matrix0: new Matrix(0, 1, 2, 3, 4, 5),
@@ -209,7 +211,7 @@ suite('TransformValue', function() {
           out: [components.translate, components.translate3d]},
 
       // Complex mixture of types
-      {str: 'rotate(2deg) translate(0px) scale(0, 1) matrix(1, 1, 1, 1, 1, 1)',
+      {str: 'rotate(0deg) translate(1px, 1px) scale(0, 1) matrix(1, 1, 1, 1, 1, 1)',
           out: [components.rotate, components.translate, components.scale0, components.matrix1]},
 
 
