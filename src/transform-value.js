@@ -76,35 +76,33 @@
         return null;
       }
 
-      switch (type) {
-        case 'rotate3d':
-        case 'rotate':
-          if (!/[0-9]deg\s*\)$/g.test(valueString)) {
-            return null;
-          }
-          valueString = valueString.replace(/deg\s*\)$/g, ')');
-
-        default:
-          var componentDefinition =
-              TransformValue._componentTypesDictionary[type];
-          var value = internal.parsing.parseArgument(
-              componentDefinition.numberOfArgs, componentDefinition.typeOfArgs,
-              valueString);
-
-          if (!value) {
-            return null;
-          }
-
-          if (componentDefinition.typeOfArgs == NumberValue) {
-            value = value.map(function(number) {return number.value});
-          }
-          if (componentDefinition.type == Rotation) {
-            var angle = value.pop();
-            value.unshift(angle);
-          }
-          components[i] = TransformComponent._componentFromValueArray(
-              componentDefinition.type, value);
+      if (type == 'rotate' || type == 'rotate3d') {
+        if (!/[0-9]deg\s*\)$/g.test(valueString)) {
+          return null;
+        }
+        valueString = valueString.replace(/deg\s*\)$/g, ')');
       }
+
+      var componentDefinition = TransformValue._componentTypesDictionary[type];
+      var value = internal.parsing.parseArgument(
+          componentDefinition.numberOfArgs, componentDefinition.typeOfArgs,
+          valueString);
+
+      if (!value) {
+        return null;
+      }
+
+      // Number Values should perhaps be handled in a different way.
+      if (componentDefinition.typeOfArgs == NumberValue) {
+        value = value.map(function(number) {return number.value});
+      }
+
+      if (componentDefinition.type == Rotation) {
+        var angle = value.pop();
+        value.unshift(angle);
+      }
+      components[i] = TransformComponent._componentFromValueArray(
+          componentDefinition.type, value);
     }
 
     return new TransformValue(components);

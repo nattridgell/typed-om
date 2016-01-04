@@ -77,24 +77,6 @@ suite('TransformValue', function() {
     assert.deepEqual(transformMatrix, expectedMatrix);
   });
 
-  function assertTransformComponents(actualTransform, expectedComponents, errorMsg) {
-    assert.isNotNull(actualTransform, errorMsg);
-    assert.instanceOf(actualTransform, TransformValue, errorMsg);
-    var actualComponents = actualTransform.transformComponents;
-    assert.strictEqual(actualComponents.length, expectedComponents.length,
-        errorMsg + ' Different number of components.');
-    for (var i = 0; i < expectedComponents.length; i++) {
-      var actual = actualComponents[i];
-      var expected = expectedComponents[i];
-      assert.instanceOf(actual, TransformComponent, errorMsg);
-      assert.strictEqual(actual.cssString, expected.cssString, errorMsg);
-      assert.strictEqual(actual.is2DComponent(), expected.is2DComponent(),
-          errorMsg);
-      assert.deepEqual(actual.asMatrix(), expected.asMatrix(), errorMsg);
-      assert.deepEqual(actual, expected, errorMsg);
-    }
-  }
-
   test('TransformValue constructor works with multiple 2D and 3D components',
         function() {
     var transform;
@@ -119,9 +101,31 @@ suite('TransformValue', function() {
     assert.deepEqual(transformMatrix, expectedMatrix);
   });
 
-  test('TransformValue.parse returns expected transformComponents for single ' +
-      'component strings', function() {
+  // Asserts the expected components match the actual transform.
+  // This helper method is used in TransformValue.parse tests.
+  function assertTransformComponents(actualTransform, expectedComponents,
+      errorMsg) {
+    assert.isNotNull(actualTransform, errorMsg);
+    assert.instanceOf(actualTransform, TransformValue, errorMsg);
+    var actualComponents = actualTransform.transformComponents;
+    assert.strictEqual(actualComponents.length, expectedComponents.length,
+        errorMsg + ' Different number of components.');
+    for (var i = 0; i < expectedComponents.length; i++) {
+      var actual = actualComponents[i];
+      var expected = expectedComponents[i];
+      assert.instanceOf(actual, TransformComponent, errorMsg);
+      assert.strictEqual(actual.cssString, expected.cssString, errorMsg);
+      assert.strictEqual(actual.is2DComponent(), expected.is2DComponent(),
+          errorMsg);
+      assert.deepEqual(actual.asMatrix(), expected.asMatrix(), errorMsg);
+      assert.deepEqual(actual, expected, errorMsg);
+    }
+  }
+
+  test('TransformValue.parse returns expected transformComponents for ' +
+      'single component strings', function() {
     var simpleLength = new SimpleLength(1, 'px');
+    var zeroSimpleLength = new SimpleLength(0, 'px');
     var values = [
       // Simple components
       {str: 'matrix3d(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)',
@@ -148,6 +152,11 @@ suite('TransformValue', function() {
       {str: ' matrix(0, 1, 2, 3, 4, 5) \n ', out: new Matrix(0, 1, 2, 3, 4, 5)},
       {str: 'translate( \t 1px, \n 1px \n)',
           out: new Translation(simpleLength, simpleLength)},
+
+      // Special case of length value.
+      // Check that it is not filtered out in TransformValue parsing.
+      {str: 'translate(0, 0)',
+          out: new Translation(zeroSimpleLength, zeroSimpleLength)},
     ];
 
     for (var i = 0; i < values.length; i++) {
@@ -170,7 +179,7 @@ suite('TransformValue', function() {
       rotate: new Rotation(0),
       scale0: new Scale(0, 1),
       scale1: new Scale(10, -2),
-      skew: new Skew(10, 15),
+      skew: new Skew(0, 1),
       translate3d: new Translation(simpleLength, simpleLength, simpleLength),
       translate: new Translation(simpleLength, simpleLength),
     };
@@ -202,10 +211,14 @@ suite('TransformValue', function() {
           out: [components.translate, components.translate3d]},
 
       // Complex mixture of types
+      {str: 'rotate(0deg) translate(1px, 1px) scale(0, 1) matrix(1, 1, 1, 1, 1, 1)',
+          out: [components.rotate, components.translate, components.scale0, components.matrix1]},
 
-      // No spacing
-      {str: }
 
+      // Different spacing. NOTE: spaces are not required.
+      {str: 'skew(0,1)rotate(0deg)', out: [components.skew, components.rotate]},
+      {str: ' \n skew(0, 1) \t\n rotate(0deg) \t \n  ',
+          out: [components.skew, components.rotate]},
     ];
 
     for (var i = 0; i < values.length; i++) {
@@ -216,22 +229,26 @@ suite('TransformValue', function() {
     }
   });
 
-  test('TransformValue.parse throws exceptions for invalid input.', function() {
+  test('TransformValue.parse throws exceptions for invalid input.',
+      function() {
     var values = [
       // Invalid types.
-      null, 5, {},
+      null, 5, {}, [5],
       // Completely invalid strings.
-      '', '5px',
+      '', '  ', 'xyz',
       // Invalid number of arguments.
       // Swapping number of arguments between 2d and 3d versions.
-      'matrix3d(0, 1, 2, 3, 4, 5)', 'rotate(1, 2, 3, 0deg)'
+      'matrix3d(0, 1, 2, 3, 4, 5)', 'matrix3(0, 1, 2, 3, 4, 5)',
+      'matrix(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5)',
+      'rotate(1, 2, 3, 0deg)', 'rotate3d(0deg)',
+
       // Invalid numbers
       '-3.4e-2.6px',
-      // Invalid calc statements.
-      'calc()', 'calc(5)', 'calc(50 + 5px)', 'calc(pickles)',
-      'calc(5px + 5invalid)', 'calc(5px * 5px)',
+      // Invalid rotate statements.
+      'rotate(0 deg)', //'rotate(5)', 'calc(50 + 5px)', 'calc(pickles)',
+      //'calc(5px + 5invalid)', 'calc(5px * 5px)',
       // Invalid or missing units.
-      '100', '50somethings'
+      //'100', '50somethings'
     ];
     for (var i = 0; i < values.length; i++) {
       assert.throws(function() { LengthValue.parse(values[i]); }, TypeError);
